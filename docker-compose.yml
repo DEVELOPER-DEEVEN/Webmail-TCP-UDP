@@ -1,0 +1,31 @@
+version: "3.9"
+services:
+  udp_video_server:
+    build:
+      context: .
+      dockerfile: Dockerfile.video-server
+    image: webmailless/udp-video-server:latest
+    container_name: udp_video_server
+    command: ["--host", "0.0.0.0", "--port", "6000", "--camera-index", "0", "--fps", "15", "--quality", "60"]
+    ports:
+      - "6000:6000/udp"
+    restart: unless-stopped
+    # For camera access, run on the host with device passthrough or map /dev/video* (Linux)
+    # devices:
+    #   - "/dev/video0:/dev/video0"
+
+  tools:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: webmailless/tools:latest
+    container_name: webmailless_tools
+    environment:
+      - SMTP_USER=${SMTP_USER}
+      - SMTP_PASS=${SMTP_PASS}
+    # Example interactive usage:
+    # docker compose run --rm tools python udp_chat.py --help
+    # docker compose run --rm tools python smtp_client.py --help
+    # docker compose run --rm tools python udp_video_client.py --help
+
+
