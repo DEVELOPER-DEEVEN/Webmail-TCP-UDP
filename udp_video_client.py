@@ -1,10 +1,17 @@
 #!/usr/bin/env python3
+"""
+UDP Video Streaming Client.
+
+Connects to the UDP video server, reassembles fragmented JPEG frames,
+and displays them using OpenCV.
+"""
+
 import argparse
 import socket
 import struct
 import time
 from collections import defaultdict
-from typing import Dict, Tuple
+from typing import Dict, Optional, TypedDict
 
 import cv2
 import numpy as np
@@ -14,7 +21,15 @@ HEADER_STRUCT = struct.Struct("!I H H I")
 # frame_id, total_chunks, chunk_index, payload_len
 
 
+class FrameBuffer(TypedDict):
+    """Buffer for reassembling fragmented video frames."""
+    chunks: Dict[int, bytes]
+    total: Optional[int]
+    ts: float
+
+
 def main() -> None:
+	"""Main entry point for the UDP video client."""
 	parser = argparse.ArgumentParser(description="UDP Video Streaming Client")
 	parser.add_argument("--server-host", required=True)
 	parser.add_argument("--server-port", type=int, default=6000)
@@ -33,7 +48,8 @@ def main() -> None:
 	# Send a hello to announce ourselves
 	sock.sendto(b"hello", server)
 
-	frames: Dict[int, Dict[str, object]] = defaultdict(lambda: {"chunks": {}, "total": None, "ts": time.time()})
+	# Using FrameBuffer TypedDict for better type safety
+	frames: Dict[int, FrameBuffer] = defaultdict(lambda: {"chunks": {}, "total": None, "ts": time.time()})
 	curr_frame_id = -1
 
 	try:
@@ -47,7 +63,7 @@ def main() -> None:
 			frame_id, total_chunks, chunk_index, payload_len = HEADER_STRUCT.unpack_from(packet, 0)
 			payload = packet[HEADER_STRUCT.size : HEADER_STRUCT.size + payload_len]
 			buf = frames[frame_id]
-			chunks = buf["chunks"]  # type: ignore
+			chunks = buf["chunks"]
 			chunks[chunk_index] = bytes(payload)
 			if buf["total"] is None:
 				buf["total"] = total_chunks
