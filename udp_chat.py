@@ -15,25 +15,30 @@ def create_udp_socket(listen_host: str, listen_port: int) -> socket.socket:
 
 
 def receiver_loop(sock: socket.socket) -> None:
-	"""Continuously receive datagrams and print them to stdout."""
-	try:
-		while True:
-			data, addr = sock.recvfrom(2048)
-			print(f"\r<{addr[0]}:{addr[1]}> {data.decode(errors='replace')}\n> ", end="", flush=True)
-	except OSError:
-		return
+    """Continuously receive datagrams and print them to stdout."""
+    try:
+        while True:
+            data, addr = sock.recvfrom(2048)
+            msg = data.decode(errors='replace')
+            # Sanitize output to prevent terminal escape injection
+            msg = "".join(ch for ch in msg if ch.isprintable() or ch == "\n")
+            print(f"\r<{addr[0]}:{addr[1]}> {msg}\n> ", end="", flush=True)
+    except OSError:
+        return
 
 
 def sender_loop(sock: socket.socket, peer: Tuple[str, int]) -> None:
-	"""Read stdin lines and send as UDP datagrams to the peer."""
-	try:
-		while True:
-			msg = input("> ")
-			if msg.strip().lower() in {"/quit", ":q", "exit"}:
-				break
-			sock.sendto(msg.encode(), peer)
-	except (EOFError, KeyboardInterrupt):
-		pass
+    """Read stdin lines and send as UDP datagrams to the peer."""
+    try:
+        while True:
+            msg = input("> ")
+            if msg.strip().lower() in {"/quit", ":q", "exit"}:
+                break
+            if not msg:
+                continue
+            sock.sendto(msg.encode('utf-8'), peer)
+    except (EOFError, KeyboardInterrupt):
+        pass
 
 
 def main() -> None:
