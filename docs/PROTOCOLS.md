@@ -29,6 +29,31 @@ In this project:
 
 - UDP MTU: keep payloads < 1200 bytes to avoid IP fragmentation across networks.
 - Rate: cap FPS/bandwidth to avoid network saturation; consider adaptive quality.
-- TCP SMTP: avoid blocking UI by running send in a separate thread or async context if integrating into a GUI.
+
+### UDP Video Header Protocol
+
+Each UDP datagram for video streaming includes a 12-byte header followed by the JPEG payload fragment. The header is encoded in Network Byte Order (Big-Endian).
+
+**Header Layout (12 bytes):**
+
+```text
+ 0                   1                   2                   3
+ 0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1
++-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+|                           Frame ID                            |
++-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+|          Total Chunks         |          Chunk Index          |
++-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+|                          Payload Len                          |
++-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+|                                                               |
+|                        ...Payload...                          |
+|                                                               |
+```
+
+- **Frame ID (4 bytes):** Monotonically increasing identifier for the video frame.
+- **Total Chunks (2 bytes):** Total number of fragments this frame is split into.
+- **Chunk Index (2 bytes):** The sequence number of this fragment (0-indexed).
+- **Payload Len (4 bytes):** Length of the JPEG fragment data following the header.
 
 
