@@ -10,41 +10,47 @@ from email_validator import validate_email, EmailNotValidError
 
 
 def build_message(from_addr: str, to_addr: str, subject: str, body: str) -> EmailMessage:
-	msg = EmailMessage()
-	msg["From"] = from_addr
-	msg["To"] = to_addr
-	msg["Subject"] = subject
-	msg.set_content(body)
-	return msg
+    """Construct an EmailMessage object."""
+    msg = EmailMessage()
+    msg["From"] = from_addr
+    msg["To"] = to_addr
+    msg["Subject"] = subject
+    msg.set_content(body)
+    return msg
 
 
 def send_mail(
-	smtp_host: str,
-	smtp_port: int,
-	username: str,
-	password: str,
-	from_addr: str,
-	to_addr: str,
-	subject: str,
-	body: str,
-	smtps: bool = False,
+    smtp_host: str,
+    smtp_port: int,
+    username: str,
+    password: str,
+    from_addr: str,
+    to_addr: str,
+    subject: str,
+    body: str,
+    smtps: bool = False,
 ) -> None:
-	context = ssl.create_default_context()
-	msg = build_message(from_addr, to_addr, subject, body)
+    """Send an email via SMTP/SMTPS with TLS security."""
+    context = ssl.create_default_context()
+    msg = build_message(from_addr, to_addr, subject, body)
 
-	if smtps:
-		with smtplib.SMTP_SSL(smtp_host, smtp_port, context=context) as server:
-			server.login(username, password)
-			server.send_message(msg)
-			print("Sent via SMTPS (implicit TLS)")
-	else:
-		with smtplib.SMTP(smtp_host, smtp_port) as server:
-			server.ehlo()
-			server.starttls(context=context)
-			server.ehlo()
-			server.login(username, password)
-			server.send_message(msg)
-			print("Sent via SMTP with STARTTLS")
+    try:
+        if smtps:
+            with smtplib.SMTP_SSL(smtp_host, smtp_port, context=context) as server:
+                server.login(username, password)
+                server.send_message(msg)
+                print(f"Sent via SMTPS (implicit TLS) to {to_addr}")
+        else:
+            with smtplib.SMTP(smtp_host, smtp_port) as server:
+                server.ehlo()
+                server.starttls(context=context)
+                server.ehlo()
+                server.login(username, password)
+                server.send_message(msg)
+                print(f"Sent via SMTP with STARTTLS to {to_addr}")
+    except smtplib.SMTPException as e:
+        print(f"Failed to send email: {e}", file=sys.stderr)
+        sys.exit(1)
 
 
 def main() -> None:
